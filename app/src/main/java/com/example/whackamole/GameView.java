@@ -9,6 +9,10 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
@@ -30,10 +34,15 @@ public class GameView extends SurfaceView {
     private Handler handler;
     private boolean whackoMode = false;
     private int moleType = 1;
+    private SensorManager sensorManager;
+    private float acelVal;      //CURRENT ACCELERATION VALUE AND GRAVITY
+    private float acelLast;     //LAST ACCELERATION VALUE AND GRAVITY
+    private float shake;        //ACCELERATION VALUE DIFFER FROM GRAVITY
 
-    public GameView(Context context) {
+    public GameView(final Context context) {
         super(context);
         gameThread = new GameThread(this);
+
         holder = getHolder();
         holder.setFixedSize(1060, 1960);
         holder.addCallback(new SurfaceHolder.Callback() {
@@ -76,15 +85,45 @@ public class GameView extends SurfaceView {
         handler = new Handler();
         final Runnable r = new Runnable() {
             public void run() {
-                handler.postDelayed(this, 5000);
+                sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
+                sensorManager.registerListener(sensorListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+
+                acelVal = SensorManager.GRAVITY_EARTH;
+                acelLast = SensorManager.GRAVITY_EARTH;
+                shake = 0.00f;
+                handler.postDelayed(this, 30000);
                 reDraw();
             }
         };
 
-        handler.postDelayed(r, 5000);
+        handler.postDelayed(r, 30000);
 
     }
 
+    private final SensorEventListener sensorListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            float x = event.values[0];
+            float y = event.values[1];
+            float z = event.values[2];
+
+            acelLast = acelVal;
+            acelVal = (float) Math.sqrt((double) (x*x + y*y + z*z));
+            float delta = acelVal - acelLast;
+
+            shake = shake * 0.9f + delta;
+
+            if (shake > 8)
+            {
+                whacks++;
+            }
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
 
     @Override
     protected void onDraw(Canvas c) { //will be called when View is created and will draw on view using its canvas
@@ -107,6 +146,7 @@ public class GameView extends SurfaceView {
     }
 
     public void whackoMode(){
+        finish = true;
         canvas.drawColor(Color.MAGENTA);
         Bitmap label = BitmapFactory.decodeResource(getResources(), R.mipmap.whackomodelabel);
         Bitmap shakeLbl = BitmapFactory.decodeResource(getResources(), R.mipmap.shake);
@@ -125,6 +165,21 @@ public class GameView extends SurfaceView {
             canvas.drawBitmap(mole1, 200, 1460, null);
             moleType = 1;
         }
+
+        Paint paint = new Paint();
+        Bitmap b = Bitmap.createBitmap(200, 200, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        c.drawRect(0, 0, 200, 200, paint);
+
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+        paint.setTextSize(40);
+        paint.setTextScaleX(1.f);
+        paint.setAlpha(0);
+        paint.setAntiAlias(true);
+        c.drawText("WHACKS:", 15, 40, paint);
+        c.drawText(String.valueOf(whacks), 20, 120, paint);
+        paint.setColor(Color.WHITE);
+        canvas.drawBitmap(b, 435,775, paint);
     }
 
     private void regularMode(Canvas canvas){
@@ -278,8 +333,8 @@ public class GameView extends SurfaceView {
         float yEnd = hole.getY() + bmp.getHeight();
 
 
-        if ((event.getX() >= hole.getX() && event.getX() <= xEnd)
-                && (event.getY() >= hole.getY() && event.getY() <= yEnd) ) {
+        if ((event.getX() >= hole.getX() && event.getX() <= xEnd+20)
+                && (event.getY() >= hole.getY() && event.getY() <= yEnd+20) ) {
             int pixX = (int) (event.getX() - hole.getX());
             int pixY = (int) (event.getY() - hole.getY());
             if (!(bmp.getPixel(pixX, pixY) == 0)) {

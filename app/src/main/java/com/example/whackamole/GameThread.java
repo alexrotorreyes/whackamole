@@ -22,7 +22,7 @@ public class GameThread extends Thread {
         while(running){ //while canvas is running
             Canvas c = null;
             try {
-                Thread.sleep(250);
+                Thread.sleep(150);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
