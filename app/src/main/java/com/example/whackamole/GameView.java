@@ -9,6 +9,7 @@ import android.graphics.Color;
 import android.graphics.Paint;
 import android.graphics.PorterDuff;
 import android.graphics.PorterDuffXfermode;
+import android.os.Handler;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
@@ -25,12 +26,13 @@ public class GameView extends SurfaceView {
     private int whacks = 0;
     private int currHole = 0;
     private boolean finish = false;
-
+    private Canvas canvas;
 
     public GameView(Context context) {
         super(context);
         gameThread = new GameThread(this);
         holder = getHolder();
+        holder.setFixedSize(1060, 1960);
         holder.addCallback(new SurfaceHolder.Callback() {
             @Override
             public void surfaceCreated(SurfaceHolder holder) {
@@ -72,20 +74,21 @@ public class GameView extends SurfaceView {
     }
 
     @Override
-    protected void onDraw(Canvas canvas) { //will be called when View is created and will draw on view using its canvas
-        super.onDraw(canvas);
+    protected void onDraw(Canvas c) { //will be called when View is created and will draw on view using its canvas
+        super.onDraw(c);
+        this.canvas = c;
+        regularMode(c);
+    }
+
+    public void whackoMode(){
+        canvas.drawColor(Color.BLUE);
+    }
+
+    private void regularMode(Canvas canvas){
         canvas.drawColor(Color.GREEN);
         Random r = new Random();
         int rand = r.nextInt(9);
         Bitmap temp;
-
-//        ArrayList<Hole> withMole = new ArrayList<>();
-//
-//        for(int i = 0; i < holes.size(); i++){          //making an arrayList of holes with moles <3
-//            if(holes.get(i).getCurrentStage() > 1){
-//                withMole.add(holes.get(i));
-//            }
-//        }
 
         int ctr = 0;
         //before adding another random mole on screen, check if number of existing moles is less than 3
@@ -98,43 +101,41 @@ public class GameView extends SurfaceView {
 
 
         //up and down movements
-        //for(int i = 0; i < holes.size(); i++){
         int i = currHole;
-            if(holes.get(i).getDirection().equals("up")) {
-                switch (holes.get(i).getCurrentStage()) {
-                    case 1:
-                        update(2, i);
-                        break;
-                    case 2:
-                        update(3, i);
-                        break;
-                    case 3:
-                        update(4, i);
-                        break;
-                    case 4:
-                        update(4, i);
-                        holes.get(i).setDirection("down");
-                        break;
-                }
-            }else if(holes.get(i).getDirection().equals("down")) {
-                    switch (holes.get(i).getCurrentStage()) {
-                        case 1:
-                            update(1, i);
-                            holes.get(i).setDirection("up");
-                            finish = true;
-                            break;
-                        case 2:
-                            update(1, i);
-                            break;
-                        case 3:
-                            update(2, i);
-                            break;
-                        case 4:
-                            update(3, i);
-                            break;
-                    }
-               }
-       // }
+        if(holes.get(i).getDirection().equals("up")) {
+            switch (holes.get(i).getCurrentStage()) {
+                case 1:
+                    update(2, i);
+                    break;
+                case 2:
+                    update(3, i);
+                    break;
+                case 3:
+                    update(4, i);
+                    break;
+                case 4:
+                    update(4, i);
+                    holes.get(i).setDirection("down");
+                    break;
+            }
+        }else if(holes.get(i).getDirection().equals("down")) {
+            switch (holes.get(i).getCurrentStage()) {
+                case 1:
+                    update(1, i);
+                    holes.get(i).setDirection("up");
+                    finish = true;
+                    break;
+                case 2:
+                    update(1, i);
+                    break;
+                case 3:
+                    update(2, i);
+                    break;
+                case 4:
+                    update(3, i);
+                    break;
+            }
+        }
 
         int left = 10;
         int top = 100;
@@ -142,9 +143,9 @@ public class GameView extends SurfaceView {
         for(int x = 0; x < holes.size(); x++){
             switch(x){
                 case 0: canvas.drawBitmap(holes.get(x).getBmp(), 10, 100, null);
-                        holes.get(x).setX(10);
-                        holes.get(x).setY(100);
-                        break;
+                    holes.get(x).setX(10);
+                    holes.get(x).setY(100);
+                    break;
                 case 1: canvas.drawBitmap(holes.get(x).getBmp(), 360, 100, null);
                     holes.get(x).setX(360);
                     holes.get(x).setY(100);
@@ -196,7 +197,6 @@ public class GameView extends SurfaceView {
         paint.setColor(Color.DKGRAY);
         canvas.drawBitmap(b, 450,1500, paint);
 
-
     }
 
     private void update(int stage, int offset){
@@ -242,11 +242,11 @@ public class GameView extends SurfaceView {
     }
 
     public boolean onTouchEvent(MotionEvent event) {
-        if((holes.get(currHole).getCurrentStage() == 4 || holes.get(currHole).getCurrentStage() == 3) && finish == false) {
+        if ((holes.get(currHole).getCurrentStage() == 4 || holes.get(currHole).getCurrentStage() == 3) && finish == false) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     if (clickOnBitmap(holes.get(currHole), event)) {
-                        whacks++;
+                        whacks = whacks + 1;
                     }
                     return true;
                 case MotionEvent.ACTION_OUTSIDE:
@@ -257,4 +257,10 @@ public class GameView extends SurfaceView {
         }
         return false;
     }
+
+    public void addWhacks(){
+        whacks++;
+    }
+
 }
+
