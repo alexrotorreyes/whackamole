@@ -27,6 +27,9 @@ public class GameView extends SurfaceView {
     private int currHole = 0;
     private boolean finish = false;
     private Canvas canvas;
+    private Handler handler;
+    private boolean whackoMode = false;
+    private int moleType = 1;
 
     public GameView(Context context) {
         super(context);
@@ -70,18 +73,58 @@ public class GameView extends SurfaceView {
             }
         });
 
+        handler = new Handler();
+        final Runnable r = new Runnable() {
+            public void run() {
+                handler.postDelayed(this, 5000);
+                reDraw();
+            }
+        };
+
+        handler.postDelayed(r, 5000);
 
     }
+
 
     @Override
     protected void onDraw(Canvas c) { //will be called when View is created and will draw on view using its canvas
         super.onDraw(c);
         this.canvas = c;
-        regularMode(c);
+
+        if(whackoMode == false){
+            regularMode(c);
+        }
+        else{
+            whackoMode();
+        }
+
+    }
+
+    protected void reDraw() {
+        this.invalidate();
+        whackoMode = true;
+
     }
 
     public void whackoMode(){
-        canvas.drawColor(Color.BLUE);
+        canvas.drawColor(Color.MAGENTA);
+        Bitmap label = BitmapFactory.decodeResource(getResources(), R.mipmap.whackomodelabel);
+        Bitmap shakeLbl = BitmapFactory.decodeResource(getResources(), R.mipmap.shake);
+        Bitmap mole1 = BitmapFactory.decodeResource(getResources(), R.mipmap.whackomode1);
+        Bitmap mole2 = BitmapFactory.decodeResource(getResources(), R.mipmap.whackomode2);
+
+
+        canvas.drawBitmap(label, 25, 100, null);
+        canvas.drawBitmap(shakeLbl, 110, 350, null);
+
+        if(moleType == 1) {
+            canvas.drawBitmap(mole2, 200, 1460, null);
+            moleType = 2;
+        }
+        else {
+            canvas.drawBitmap(mole1, 200, 1460, null);
+            moleType = 1;
+        }
     }
 
     private void regularMode(Canvas canvas){
@@ -220,6 +263,14 @@ public class GameView extends SurfaceView {
                     break;
         }
     }
+
+//    private void updateWhacko(int num){
+//        Bitmap bmp;
+//        if(num%2 == 0)
+//            bmp = BitmapFactory.decodeResource(getResources(), R.mipmap.stage2);
+//        else
+//            bmp = BitmapFactory.decodeResource(getResources(), R.mipmap.stage1);
+//    }
 
     private boolean clickOnBitmap(Hole hole, MotionEvent event) {
         Bitmap bmp = hole.getBmp();

@@ -1,6 +1,7 @@
 package com.example.whackamole;
 
 import android.content.Context;
+import android.content.Intent;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -34,16 +35,6 @@ public class MainActivity extends AppCompatActivity {
         acelVal = SensorManager.GRAVITY_EARTH;
         acelLast = SensorManager.GRAVITY_EARTH;
         shake = 0.00f;
-
-        //        whackoMode();
-        new Handler().postDelayed(new Runnable() {
-            @Override
-            public void run() {
-                //view.whackoMode();
-                testToast();
-            }
-        }, 5000);
-
     }
 
     void testToast(){
