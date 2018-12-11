@@ -32,12 +32,23 @@ public class GameView extends SurfaceView {
     private boolean finish = false;
     private Canvas canvas;
     private Handler handler;
-    private boolean whackoMode = false;
+    private boolean regularMode = false;
+    private boolean whackoMode = false; //if true, whackoMode will be shown
+    private boolean mainMenu = true;   //if true, mainMenu will be shown
+    private boolean gameStart = false; //if true, game has started
     private int moleType = 1;
     private SensorManager sensorManager;
     private float acelVal;      //CURRENT ACCELERATION VALUE AND GRAVITY
     private float acelLast;     //LAST ACCELERATION VALUE AND GRAVITY
     private float shake;        //ACCELERATION VALUE DIFFER FROM GRAVITY
+    private int instructionsBtnX = 0;
+    private int instructionsBtnY = 0;
+    private int startBtnX = 0;
+    private int startBtnY = 0;
+    private int highScore = 0;
+    private Bitmap startBtn;
+    private Bitmap instructionsBtn;
+//    private Runnable runnable;
 
     public GameView(final Context context) {
         super(context);
@@ -83,24 +94,10 @@ public class GameView extends SurfaceView {
         });
 
         handler = new Handler();
-        final Runnable r = new Runnable() {
-            public void run() {
-                sensorManager = (SensorManager) context.getSystemService(Context.SENSOR_SERVICE);
-                sensorManager.registerListener(sensorListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
-
-                acelVal = SensorManager.GRAVITY_EARTH;
-                acelLast = SensorManager.GRAVITY_EARTH;
-                shake = 0.00f;
-                handler.postDelayed(this, 30000);
-                reDraw();
-            }
-        };
-
-        handler.postDelayed(r, 30000);
 
     }
 
-    private final SensorEventListener sensorListener = new SensorEventListener() {
+    private final SensorEventListener sensorListener = new SensorEventListener() { //handles shaking
         @Override
         public void onSensorChanged(SensorEvent event) {
             float x = event.values[0];
@@ -130,22 +127,99 @@ public class GameView extends SurfaceView {
         super.onDraw(c);
         this.canvas = c;
 
-        if(whackoMode == false){
+        if(mainMenu == true && whackoMode == false && regularMode == false) {
+            gameStart = false;
+            mainMenu();
+
+        }else if(regularMode == true && mainMenu == false && whackoMode == false){
+            gameStart = true;
             regularMode(c);
         }
-        else{
+        else if(whackoMode == true && mainMenu == false && regularMode == false){
             whackoMode();
         }
 
     }
 
-    protected void reDraw() {
+    protected void reDraw(String mode) {        //sets boolean value of mode to "true" before onDraw is called
+//        this.invalidate();
+        switch(mode){
+            case "MAIN MENU":   mainMenu = true;
+                                whackoMode = false;
+                                regularMode = false;
+                                Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
+                                break;
+            case "WHACKO MODE": whackoMode = true;
+                                mainMenu = false;
+                                regularMode = false;
+                                Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
+                                break;
+            case "REGULAR MODE": regularMode = true;
+                                    whackoMode = false;
+                                  mainMenu = false;
+                Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
+                                break;
+        }
         this.invalidate();
-        whackoMode = true;
 
     }
 
+    public void reset(){
+        //handler.removeCallbacksAndMessages(null);
+        handler.removeMessages(0);
+
+        for(int i = 0; i < holes.size(); i++){
+            holes.get(i).setCurrentStage(1);
+            holes.get(i).setDirection("up");
+        //    Toast.makeText(getContext().getApplicationContext(), "entered LOOOOOOOOOOOOOOP RESET: " + i, Toast.LENGTH_SHORT).show();
+        //   Toast.makeText(getContext().getApplicationContext(), "LOOOOP CURR STAGE: " + holes.get(i).getCurrentStage(), Toast.LENGTH_SHORT).show();
+        }
+
+        whacks = 0;
+    }
+
+    public void mainMenu(){
+        canvas.drawColor(Color.DKGRAY);
+        Bitmap title = BitmapFactory.decodeResource(getResources(), R.mipmap.title);
+        startBtn = BitmapFactory.decodeResource(getResources(), R.mipmap.startbtn);
+        instructionsBtn = BitmapFactory.decodeResource(getResources(), R.mipmap.instructionsbtn);
+
+        canvas.drawBitmap(title, 25, 130, null);
+        canvas.drawBitmap(startBtn, 330, 1100, null);
+        startBtnX = 330;
+        startBtnY = 1100;
+        canvas.drawBitmap(instructionsBtn, 250, 1350, null);
+        instructionsBtnX = 250;
+        instructionsBtnY = 1350;
+
+        Paint paint = new Paint();
+        Bitmap b = Bitmap.createBitmap(200, 200, Bitmap.Config.ALPHA_8);
+        Canvas c = new Canvas(b);
+        c.drawRect(0, 0, 200, 200, paint);
+
+        paint.setXfermode(new PorterDuffXfermode(PorterDuff.Mode.SRC));
+        paint.setTextSize(30);
+        paint.setTextScaleX(1.f);
+        paint.setAlpha(0);
+        paint.setAntiAlias(true);
+        c.drawText("HIGH SCORE:", 15, 40, paint);
+        c.drawText(String.valueOf(highScore), 20, 120, paint);
+        paint.setColor(Color.WHITE);
+        canvas.drawBitmap(b, 435,700, paint);
+    }
+
     public void whackoMode(){
+        handler.postDelayed(new Runnable(){
+            @Override
+            public void run(){
+                if(whacks > highScore){
+                    highScore = whacks;
+                }
+
+                reDraw("MAIN MENU");
+            }
+        }, 5000);
+
         finish = true;
         canvas.drawColor(Color.MAGENTA);
         Bitmap label = BitmapFactory.decodeResource(getResources(), R.mipmap.whackomodelabel);
@@ -184,17 +258,28 @@ public class GameView extends SurfaceView {
 
     private void regularMode(Canvas canvas){
         canvas.drawColor(Color.GREEN);
-        Random r = new Random();
-        int rand = r.nextInt(9);
-        Bitmap temp;
 
-        int ctr = 0;
-        //before adding another random mole on screen, check if number of existing moles is less than 3
-        if(holes.get(rand).getCurrentStage() == 1 && finish == true) { //if no mole in hole
+        handler.postDelayed(new Runnable(){
+            @Override
+            public void run(){
+                sensorManager = (SensorManager) getContext().getApplicationContext().getSystemService(Context.SENSOR_SERVICE);
+                sensorManager.registerListener(sensorListener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL);
+
+                acelVal = SensorManager.GRAVITY_EARTH;
+                acelLast = SensorManager.GRAVITY_EARTH;
+                shake = 0.00f;
+                reDraw("WHACKO MODE");
+            }
+        }, 5000);
+
+        Random rand = new Random();
+        int random = rand.nextInt(9);
+
+        if(holes.get(random).getCurrentStage() == 1 && finish == true) { //if no mole in hole
             finish = false;
-            currHole = rand;
-            update(2, rand);
-            holes.get(rand).setDirection("up");
+            currHole = random;
+            update(2, random);
+            holes.get(random).setDirection("up");
         }
 
 
@@ -234,9 +319,6 @@ public class GameView extends SurfaceView {
                     break;
             }
         }
-
-        int left = 10;
-        int top = 100;
 
         for(int x = 0; x < holes.size(); x++){
             switch(x){
@@ -297,7 +379,7 @@ public class GameView extends SurfaceView {
 
     }
 
-    private void update(int stage, int offset){
+    private void update(int stage, int offset){ //changes the photo stage of the mole
         Bitmap bmp;
         switch(stage){
             case 1: bmp = BitmapFactory.decodeResource(getResources(), R.mipmap.stage1);
@@ -319,15 +401,8 @@ public class GameView extends SurfaceView {
         }
     }
 
-//    private void updateWhacko(int num){
-//        Bitmap bmp;
-//        if(num%2 == 0)
-//            bmp = BitmapFactory.decodeResource(getResources(), R.mipmap.stage2);
-//        else
-//            bmp = BitmapFactory.decodeResource(getResources(), R.mipmap.stage1);
-//    }
 
-    private boolean clickOnBitmap(Hole hole, MotionEvent event) {
+    private boolean clickOnBitmap(Hole hole, MotionEvent event) { //if a certain mole was clicked
         Bitmap bmp = hole.getBmp();
         float xEnd = hole.getX() + bmp.getWidth();
         float yEnd = hole.getY() + bmp.getHeight();
@@ -347,8 +422,36 @@ public class GameView extends SurfaceView {
         return false;
     }
 
-    public boolean onTouchEvent(MotionEvent event) {
-        if ((holes.get(currHole).getCurrentStage() == 4 || holes.get(currHole).getCurrentStage() == 3) && finish == false) {
+    private String clickOnBtn(Bitmap bmp, MotionEvent event){ //if a certain button was clicked
+        float startBtnXEnd = startBtnX + bmp.getWidth();
+        float startBtnYEnd = startBtnY + bmp.getHeight();
+        float instructionsBtnXEnd = instructionsBtnX + bmp.getWidth();
+        float instructionsBtnYEnd = instructionsBtnY + bmp.getHeight();
+
+        if ((event.getX() >= startBtnX && event.getX() <= startBtnXEnd) //removed the "+20"
+                && (event.getY() >= startBtnY && event.getY() <= startBtnYEnd)) {
+            int pixX = (int) (event.getX() - startBtnX);
+            int pixY = (int) (event.getY() - startBtnY);
+            if (!(bmp.getPixel(pixX, pixY) == 0)) {
+                return "START";
+            }
+        }
+
+        if ((event.getX() >= instructionsBtnX && event.getX() <= instructionsBtnXEnd+20)
+                && (event.getY() >= instructionsBtnY && event.getY() <= instructionsBtnYEnd+20) ) {
+            int pixX = (int) (event.getX() - instructionsBtnX);
+            int pixY = (int) (event.getY() - instructionsBtnY);
+            if (!(bmp.getPixel(pixX, pixY) == 0)) {
+                return "INSTRUCTIONS";
+            }
+        }
+
+        return "NOTHING";
+    }
+
+
+    public boolean onTouchEvent(MotionEvent event) { //if the user clicked any area of the screen
+        if ((holes.get(currHole).getCurrentStage() == 4 || holes.get(currHole).getCurrentStage() == 3) && finish == false && mainMenu == false) {
             switch (event.getAction()) {
                 case MotionEvent.ACTION_DOWN:
                     if (clickOnBitmap(holes.get(currHole), event)) {
@@ -361,10 +464,28 @@ public class GameView extends SurfaceView {
                     return true;
             }
         }
+        if ((mainMenu == true && whackoMode == false && regularMode == false && gameStart == false)){
+            switch (event.getAction()) {
+                case MotionEvent.ACTION_DOWN:
+                    if (clickOnBtn(startBtn, event).equals("START")) {
+                        currHole = 0;
+                        reset();
+                        reDraw("REGULAR MODE");
+                    }else if(clickOnBtn(instructionsBtn, event).equals("INSTRUCTIONS")){
+                        //do instructions actions here
+                    }
+                    return true;
+                case MotionEvent.ACTION_OUTSIDE:
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    return true;
+            }
+
+        }
         return false;
     }
 
-    public void addWhacks(){
+    public void addWhacks(){ //adds whacks to whack counter
         whacks++;
     }
 
