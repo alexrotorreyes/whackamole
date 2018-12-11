@@ -1,7 +1,8 @@
 package com.example.whackamole;
 
-import android.annotation.SuppressLint;
+import android.app.AlertDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
@@ -14,10 +15,12 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
+import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import java.util.ArrayList;
@@ -147,17 +150,17 @@ public class GameView extends SurfaceView {
             case "MAIN MENU":   mainMenu = true;
                                 whackoMode = false;
                                 regularMode = false;
-                                Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
+                                //Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
                                 break;
             case "WHACKO MODE": whackoMode = true;
                                 mainMenu = false;
                                 regularMode = false;
-                                Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
+                                //Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
                                 break;
             case "REGULAR MODE": regularMode = true;
                                     whackoMode = false;
                                   mainMenu = false;
-                Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
+               // Toast.makeText(getContext().getApplicationContext(), mode, Toast.LENGTH_SHORT).show();
                                 break;
         }
         this.invalidate();
@@ -473,6 +476,7 @@ public class GameView extends SurfaceView {
                         reDraw("REGULAR MODE");
                     }else if(clickOnBtn(instructionsBtn, event).equals("INSTRUCTIONS")){
                         //do instructions actions here
+                        openPopUp();
                     }
                     return true;
                 case MotionEvent.ACTION_OUTSIDE:
@@ -487,6 +491,32 @@ public class GameView extends SurfaceView {
 
     public void addWhacks(){ //adds whacks to whack counter
         whacks++;
+    }
+
+    private void openPopUp(){
+        LayoutInflater li = LayoutInflater.from(getContext());
+        View dialogView = li.inflate(R.layout.popup, null);
+
+        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(getContext());
+        alertDialogBuilder.setView(dialogView);
+
+        final TextView instructions = (TextView) dialogView.findViewById(R.id.instructionsTxt);
+        instructions.setText("Whack that irritating mole as many times as you can!"
+                            + "\nGet ready to shake your phone to make that mole dizzy during WHACKO MODE!"
+                            + "\nHURRY before he ruins your garden!");
+
+        //setting dialog message
+        alertDialogBuilder
+                .setCancelable(false)
+                .setNegativeButton("LET'S WHACK",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog,int id) {
+                                dialog.cancel();
+                            }
+                        });
+
+        AlertDialog alertDialog = alertDialogBuilder.create();
+        alertDialog.show();
     }
 
 }
